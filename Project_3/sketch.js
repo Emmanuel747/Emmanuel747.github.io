@@ -11,6 +11,8 @@ function preload() {
   spriteSheets = [
     loadImage("./sprites/1-Spelunky_Round Boy.png"),
     loadImage("./sprites/2-Spelunky_Spelunky Guy.png"),
+    loadImage("./sprites/3-Spelunky-Purple.png"),
+    loadImage("./sprites/4-Spelunky-Jungle Warrior.png"),
   ];
 }
 
