@@ -1,3 +1,5 @@
+/* gitHub root page styles*/
+
 html, body {
   margin: 0;
   padding: 0;
@@ -90,17 +92,17 @@ nav li:hover .dropdown-menu {
 
 .container {
   position: relative;
-  }
+}
   
-  .container img {
+.container img {
   position: absolute;
   left: 0;
   width: 30%;
   height: 100vh;
-  }
-  
-  .codeContainer {
+}
+
+.codeContainer {
   width: 70%;
   float: right;
-  }
+}
 
