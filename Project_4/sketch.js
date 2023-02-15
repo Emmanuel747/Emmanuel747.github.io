@@ -1,9 +1,9 @@
 // Declare variables
 let bugs = [];
-let bugCount = 120;
+let bugCount = 99;
 let bugFace = 1;
 let bugSpeed = 1;
-let killCount = 0;
+let bugsKilled = 0;
 let bugDirections = [-8, 8];
 let startTime;
 let gameState = "wait";
@@ -16,7 +16,7 @@ function timer() {
 function preload() {
   // Load bug images
   bugImg = loadImage("./eman-bug.png");
-  smashedImg = loadImage("./eman-bug_squished.png");
+  bugSmashedImg = loadImage("./eman-bug_squished.png");
 }
 
 function setup() {
@@ -26,7 +26,7 @@ function setup() {
   for (let i = 0; i < bugCount; i++) {
     bugs[i] = new Bug(
       bugImg,
-      smashedImg,
+      bugSmashedImg,
       random(10, windowWidth - 400),
       random(10, windowHeight),
       random(bugDirections),
@@ -55,9 +55,9 @@ function draw() {
       bugs[i].draw();
     }
     let time = timer();
-    // text(content, x-axis, y-axis);
+    // Format text(content, x-axis, y-axis);
     text("Time: " + time, 90, 20);
-    text("Kill Count: " + killCount, 150, 50);
+    text("Kill Count: " + bugsKilled, 150, 50);
     if (time >= 30) {
       // End game after 30 seconds
       gameState = "end";
@@ -76,7 +76,7 @@ function draw() {
         }
       }
       // Reset kill count and resume gameplay
-      killCount = 0;
+      bugsKilled = 0;
       gameState = "playing";
     }
   }
@@ -94,16 +94,16 @@ function mouseClicked() {
     ) {
       // If bug is clicked and not already stopped, stop its movement and add to kill count
       bugs[i].bugClicked = true;
-      killCount++;
+      bugsKilled++;
       bugSpeed += 2;
     }
   }
 }
 
 class Bug {
-  constructor(img, smashedImg, x, y, direction, bugClicked, windowHeight, windowWidth) {
+  constructor(img, bugSmashedImg, x, y, direction, bugClicked, windowHeight, windowWidth) {
     this.img = img;
-    this.smashedImg = smashedImg;
+    this.bugSmashedImg = bugSmashedImg;
     this.x = x;
     this.y = y;
     this.direction = direction;
@@ -123,7 +123,7 @@ class Bug {
       image(this.img, 20, 20, 100, 100, 0, 0, 0, 0);
       this.x += this.direction;
     } else {
-      image(this.smashedImg, 20, 20, 100, 100, 0, 0, 0, 0);
+      image(this.bugSmashedImg, 20, 20, 100, 100, 0, 0, 0, 0);
     }
     if (this.x > this.windowWidth - 100 || this.x < -20) {
       this.direction = -this.direction;
@@ -140,7 +140,7 @@ class Bug {
     const bugY = 50 + this.y;
     if (x >= bugX && x <= bugX + bugWidth && y >= bugY && y <= bugY + bugHeight && !this.bugClicked) {
       this.bugClicked = true;
-      killCount++;
+      bugsKilled++;
       this.speed += 2;
     }
   }
