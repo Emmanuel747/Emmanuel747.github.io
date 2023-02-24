@@ -1,0 +1,47 @@
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+canvas {
+  display: block;
+}
+button {
+  background-color: #4CAF50;
+  border: none;
+  border-radius: 5px;
+  color: white;
+  padding: 6px 4px;
+  text-align: center;
+  text-decoration: none;
+  justify-content: space-between;
+  font-size: 16px;
+  cursor: pointer; /* Cursor on hover */
+  transition: background-color 0.3s; /* Smooth transition */
+}
+
+/* Change background color on hover */
+button:hover {
+  background-color: #3e8e41;
+}
+
+/* Change background color on click */
+button:active {
+  background-color: #1e712e;
+}
+
+.stop-button {
+  background-color: #ff6666;
+  color: white;
+  padding: 10px 24px;
+  border-radius: 10px;
+  font-size: 16px;
+  border: none;
+  margin-top: 10px;
+  box-shadow: 2px 2px 5px #888888;
+}
+
+.slider {
+  width: 300px;
+  text-align: center;
+}
