@@ -4,7 +4,7 @@ function setup() {
   // create a new synthesizer with a sine wave oscillator
   synth = new Tone.Synth({
     oscillator: {
-      type: 'triangle'
+      type: 'sine'
     }
   });
 
@@ -12,7 +12,7 @@ function setup() {
   envelope = new Tone.AmplitudeEnvelope({
     attack: 0.1,
     decay: 0.2,
-    sustain: 0.5,
+    sustain: 1,
     release: 1
   }).connect(synth.volume);
 
@@ -20,16 +20,21 @@ function setup() {
   filter = new Tone.Filter({
     type: 'lowpass',
     frequency: 1000,
-    rolloff: -12,
+    rolloff: -24,
     Q: 1,
-    gain: 0
+    gain: 4
   }).connect(envelope);
 
-  // create a distortion effect to add grit to the sound
-  distortion = new Tone.Distortion({
-    distortion: 0.5,
-    oversample: 'none'
-  }).connect(filter);
+  // create a chorus effect to add grit to the sound
+  const chorus = new Tone.Chorus({
+    frequency: 1.5,
+    delayTime: 1.5,
+    depth: 1.7,
+    feedback: 1,
+    type: 'triangle',
+    spread: 180,
+    wet: 1
+  });
 
   // connect the synth to the master output
   synth.toDestination();
@@ -91,12 +96,12 @@ function setup() {
     document.addEventListener('keyup', releaseFunction);
   }
 
-  // create a slider to control the amount of distortion
-  distSlider = createSlider(0, 1, 0.5, 0.01);
+  // create a slider to control the amount of chorus
+  distSlider = createSlider(0.002, 100, 20, 0.01);
   distSlider.position(20, height - 40);
   distSlider.input(function () {
-    // set the amount of distortion based on the slider value
-    distortion.distortion = distSlider.value();
+    // set the amount of chorus based on the slider value
+    chorus.feedback = distSlider.value();
   });
 
   // create an oscilloscope to visualize the audio waveform
@@ -116,25 +121,26 @@ function setup() {
   }).toMaster();
 
   // connect the audio nodes to the scope
-  synth.connect(distortion);
-  distortion.connect(filter);
+  synth.connect(chorus);
+  chorus.connect(filter);
   filter.connect(envelope);
   envelope.connect(scope);
 
-  // set up a loop to update the distortion amount based on the slider
+  // set up a loop to update the chorus amount based on the slider
   Tone.Transport.scheduleRepeat(function (time) {
-    distortion.distortion = distSlider.value();
+    chorus.feedback = distSlider.value();
   }, '16n');
 
   // create a container element for the slider
   const sliderContainer = createDiv();
   sliderContainer.style('position', 'absolute');
-  sliderContainer.style('bottom', '10px');
-  sliderContainer.style('left', '50%');
+  sliderContainer.style('bottom', '100px');
+  sliderContainer.style('left', '90%');
   sliderContainer.style('transform', 'translateX(-50%)');
 
+
   // create a label for the slider
-  const distLabel = createDiv('Distortion Amount');
+  const distLabel = createDiv('chorus Amount');
   distLabel.parent(sliderContainer);
 
   // add the slider to the container element
@@ -165,3 +171,17 @@ function draw() {
   // draw the oscilloscope waveform
   scopeView.draw();
 }
+
+// connect the audio nodes to the effects and the master output
+synth.connect(chorus);
+chorus.connect(filter);
+filter.connect(Tone.Master);
+
+// update the chorus and chorus amount based on the sliders
+Tone.Transport.scheduleRepeat(function (time) {
+  chorus.wet.value = distSlider.value();
+}, '16n');
+
+
+// add the audio effects container to the page
+audioEffects.parent(document.body);

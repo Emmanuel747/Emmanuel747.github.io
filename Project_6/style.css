@@ -1,0 +1,63 @@
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+canvas {
+  margin: auto;
+  display: block;
+  
+}
+
+button {
+  background-color: #ddd;
+  border: none;
+  color: black;
+  padding: 20px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  margin: 10px;
+}
+
+button.active {
+  background-color: #ff9900;
+}
+
+.key {
+  background-color: #ccc;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  font-weight: bold;
+  margin: 5px;
+  outline: none;
+  padding: 10px;
+}
+
+.active {
+  background-color: #ffdd99;
+}
+
+input {
+  left: 40% !important;
+  top: 55% !important;
+  width: 400px;
+}
+
+.inputText {
+  position: absolute;
+  left: 50% !important;
+  top: 73% !important;
+  width: 400px;
+  font-weight: bold;
+  font-size: larger;
+}
+
+.video-wrapper {
+  position: absolute;
+  top: 75.5%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
