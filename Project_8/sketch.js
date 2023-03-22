@@ -101,7 +101,7 @@ function draw() {
     noCursor();
     // Display end game message and restart prompt
     text("Kill Count: " + bugsKilled, width/2 + 7, height/2 - 35);
-    text("Game over", width/2, height/2);
+    text("Game Over", width/2, height/2);
     text("Press spacebar to restart", width/2 + 92, height/2 + 35);
     skitteringSound.stop();
     backgroundMusic.stop();
