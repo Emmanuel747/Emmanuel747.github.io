@@ -238,4 +238,3 @@ function playBossTrack() {
     hasVicSongPlayed = true;
   }
 }
-
