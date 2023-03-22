@@ -1,3 +1,17 @@
+#mute-btn {
+  position: absolute;
+  top: 10px;
+  right: 50px;
+  font-size: 25px;
+  background-color: transparent;
+  border: none;
+  font-weight: bold;
+}
+
+.hammer-cursor {
+  cursor: url('./eman-spray.png'), auto;
+}
+
 /* Set a background color */
 body {
   background-color: #f9f9f9;

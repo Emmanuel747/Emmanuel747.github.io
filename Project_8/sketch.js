@@ -7,30 +7,41 @@ let bugsKilled = 0;
 let bugDirections = [-8, 8];
 let startTime;
 let gameState = "wait";
+let isMuted = false; // flag to track whether the sound is muted or not
+let hasSongPlayed = false
+let playTime = 31; // number of seconds player has for one round.
+let hammerImg;
 
 // Create a timer to track elapsed time
 function timer() {
-  return int((30000 - (millis() - startTime)) / 1000);
+  return int(((playTime * 1000) - (millis() - startTime)) / 1000);
 }
 
 function preload() {
   // Load bug images
   bugImg = loadImage("./eman-bug.png");
   bugSmashedImg = loadImage("./eman-bug_squished.png");
+  hammerImg = loadImage("./eman-spray.png");
 
   // Load background music
   backgroundMusic = loadSound("./sounds/background-music.mp3");
   skitteringSound = loadSound("./sounds/skittering-sound.mp3");
   bossSound = loadSound("./sounds/Battleship.mp3");
+  squishSound = loadSound("./sounds/squish-sound.mp3");
+  victorySound = loadSound("./sounds/round-complete.mp3");
 }
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
   textAlign(CENTER, CENTER);
+  cursor("none"); // hide default cursor
 
   // Play background music and set it to loop
+  backgroundMusic.setVolume(0.15);
   backgroundMusic.play();
   backgroundMusic.loop();
+  
+  skitteringSound.setVolume(0.2);
   skitteringSound.play();
 
 
@@ -46,25 +57,31 @@ function setup() {
       windowHeight,
       windowWidth
     );
-  }
+  };
 }
 
 function draw() {
-  background(color(144, 238, 144));
+  background(color(124, 48, 48));
+  drawMuteBtn();
+  cursor("none"); // hide default cursor
+  if (mouseIsPressed) {
+
+    image(hammerImg, mouseX, mouseY, 85, 85);
+  }
   if (gameState == "wait") {
     // Display message to start the game
     textSize(30);
     text("Welcome to my game", width/2, height/2);
-    text(" Click any where to start", width/2, height/2 + 35);
+    text(" Click anywhere to start", width/2 + 10, height/2 + 35);
     if (mouseIsPressed) {
       // Start the game and timer when user presses a key
       startTime = millis();
       gameState = "playing";
     }
   } else if (gameState == "playing") {
-    // bossSound.play();
-  
-    
+    keyCode = 0;
+    playBossTrack();
+    cursor();
     // Draw bugs, track time, and kill count during gameplay
     for (let i = 0; i < bugCount; i++) {
       bugs[i].draw();
@@ -73,19 +90,24 @@ function draw() {
     // Format text(content, x-axis, y-axis);
     text("Time: " + time, 90, 20);
     text("Kill Count: " + bugsKilled, 150, 50);
-    if (time == 0) {
+    if (time <= 0) {
       // End game after 30 seconds
+      console.log(time);
       gameState = "end";
     }
+    hasVicSongPlayed = false;
   } else if (gameState == "end") {
+    playBossTrack();
+    noCursor();
     // Display end game message and restart prompt
+    text("Kill Count: " + bugsKilled, width/2 + 7, height/2 - 35);
     text("Game over", width/2, height/2);
-    text("Press any key to restart", width/2, height/2 + 35);
+    text("Press spacebar to restart", width/2 + 92, height/2 + 35);
     skitteringSound.stop();
     backgroundMusic.stop();
-    // bossSound.play();
-    if (mouseIsPressed) {
-      // Restart game if user clicks mouse
+
+    if (keyCode === 32) {
+      // Restart game if user presses spacebar
       startTime = millis();
       // Stop movement of all clicked bugs
       for (let i = 0; i < bugCount; i++) {
@@ -100,7 +122,12 @@ function draw() {
   }
 }
 
-function mouseClicked() {
+function mousePressed() {
+  // If the user clicks on the mute/unmute button, toggle the mute state
+  if (mouseX > width - 60 && mouseY < 30) {
+    toggleMute();
+  }
+
   // Handle clicks on bugs
   for (let i = 0; i < bugCount; i++) {
     if (
@@ -110,6 +137,9 @@ function mouseClicked() {
       mouseY <= 99 + bugs[i].y &&
       bugs[i].bugClicked != true
     ) {
+      // Play the squish sound effect using Tone.js
+      squishSound.play();
+      
       // If bug is clicked and not already stopped, stop its movement and add to kill count
       bugs[i].bugClicked = true;
       bugsKilled++;
@@ -163,3 +193,49 @@ class Bug {
     }
   }
 }
+
+function drawMuteBtn() {
+  // Draw the mute/unmute button
+  textSize(30);
+  textAlign(RIGHT, TOP);
+  fill(isMuted ? '#ff0000' : '#000000');
+  // text(isMuted ? "🔊 Unmute" : "🔇 Mute", width - 70, 10);
+  let muteBtn = document.getElementById('mute-btn');
+  isMuted ? muteBtn.textContent = "🔊 Unmute" : muteBtn.textContent = "🔇 Mute";
+  muteBtn.onclick = toggleMute;
+}
+
+function toggleMute() {
+  if (isMuted) {
+    backgroundMusic.setVolume(0.1); // set volume to normal
+    skitteringSound.setVolume(0.8);
+    bossSound.setVolume(0.2);
+    victorySound.setVolume(0.3);
+    squishSound.setVolume(0.9);
+  } else {
+    backgroundMusic.setVolume(0); // mute the background music
+    skitteringSound.setVolume(0); // mute the skittering sound
+    bossSound.setVolume(0);
+    victorySound.setVolume(0);
+    squishSound.setVolume(0);
+  }
+  isMuted = !isMuted; // toggle the flag
+}
+
+function playBossTrack() {
+  if (gameState === "playing" && !hasSongPlayed) {
+    backgroundMusic.stop();
+    bossSound.setVolume(0.1);
+    bossSound.play();
+    skitteringSound.setVolume(0.2);
+    skitteringSound.play();
+    skitteringSound.loop();
+    hasSongPlayed = true;
+  } else if (gameState === "end" && !hasVicSongPlayed) {
+    bossSound.stop();
+    victorySound.setVolume(0.3);
+    victorySound.play();
+    hasVicSongPlayed = true;
+  }
+}
+
