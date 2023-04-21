@@ -1,60 +1,119 @@
-let serial;
-let bgColor = 0;
+// Test this with the Arduino sketch echo.ino, in the p5.serialport
+// examples/echo directory.
+// Try at varying baudrates, up to 115200 (make sure to change
+// Arduino to matching baud rate)
 
+// constant for example name
+const exampleName = '03-echo2';
+
+// variable for background color of the p5.js canvas
+let yellow;
+
+// variable for text color
+let black;
+
+// variable for p5.SerialPort object
+let serial;
+
+// variable for latest incoming data
+let latestData = 'waiting for incoming data';
+
+// variable por serialPortName
+let serialPortName = '/dev/cu.usbmodem11201';
+
+// variable for HTML DOM input for serial port name
+let htmlInputPortName;
+
+// variable for HTML DOM button for entering new serial port name
+let htmlButtonPortName;
+
+let inData; // for incoming serial data
+let inByte;
+let byteCount = 0;
+let output = 0;
+let options = {
+  baudRate: 9600,
+};
+
+// p5.js setup() runs once, at the beginning
 function setup() {
-  createCanvas(400, 200);
+  // small canvas
+  createCanvas(300, 300);
+
+  // set yellow color for background
+  yellow = color(255, 255, (255 * 2) / 8);
+
+  // set black color for text
+  black = color(0);
+
+  // set text alignment
+  textAlign(LEFT, CENTER);
+
+  // p5.js to create HTML input and set initial value
+  htmlInputPortName = createInput(serialPortName);
+
+  // p5.js to create HTML button and set message
+  button = createButton('update port');
+
+  // p5.js to add callback function for mouse press
+  button.mousePressed(updatePort);
+
+  // create instance of p5.SerialPort
   serial = new p5.SerialPort();
-  serial.on('list', printList);
-  serial.on('data', serialEvent);
-  serial.list();
-  serial.open("COM3"); // Change this to the appropriate port for your Arduino
+
+  // print version of p5.serialport library
+  console.log('p5.serialport.js ' + serial.version);
+
+  serial.on('data', serialEvent); // callback for when new data arrives
+  serial.on('error', serialError); // callback for errors
+
+  serial.openPort(serialPortName, options); // open a serial port
+  serial.clear();
 }
 
-function printList(portList) {
-  for (let i = 0; i < portList.length; i++) {
-    console.log(i + " " + portList[i]);
-  }
+// p5.js draw() runs after setup(), on a loop
+function draw() {
+  // paint background
+  background(yellow);
+
+  // set text color
+  fill(black);
+
+  // place example name on the top of the canvas
+  text(exampleName, (5 * width) / 100, (5 * height) / 100);
+
+  // display the incoming serial data as a string:
+  text('type any key to begin sending.', 30, 30);
+  let displayString =
+    'inByte: ' + inByte + '\t Byte count: ' + byteCount;
+
+  text(displayString, 30, 60);
+}
+
+// callback function to update serial port name
+function updatePort() {
+  // retrieve serial port name from the text area
+  serialPortName = htmlInputPortName.value();
+  // open the serial port
+  serial.openPort(serialPortName);
+}
+
+function keyPressed() {
+  serial.write(output);
 }
 
 function serialEvent() {
-  let message = serial.readLine();
-  let value = parseInt(message);
-  if (!isNaN(value)) {
-    bgColor = map(value, 0, 1023, 0, 255);
+  // read a byte from the serial port:
+  inByte = int(serial.read());
+  if (inByte !== output) {
+    print('Error: received ' + inByte + ' but sent ' + output);
+    print('byte count: ' + byteCount);
   }
+  byteCount++;
+  output = (inByte + 1) % 256; // modulo 256 to keep value 0-255
+  serial.write(output);
 }
 
-function draw() {
-  background(bgColor);
-  textSize(24);
-  textAlign(CENTER, CENTER);
-  text("Click to toggle LED", width / 2, height / 2 - 30);
-
-  // Add a rectangle to represent the potentiometer value
-  fill(255);
-  rect(20, height - 40, map(bgColor, 0, 255, 0, width - 40), 20);
-  noFill();
-  rect(20, height - 40, width - 40, 20);
-}
-
-
-function mouseClicked() {
-  let ledState = getCookie("ledState") === "1" ? "0" : "1";
-  setCookie("ledState", ledState);
-  serial.write(ledState);
-}
-
-function setCookie(name, value) {
-  document.cookie = name + "=" + value + ";path=/";
-}
-
-function getCookie(name) {
-  let cookies = document.cookie.split("; ");
-  for (let i = 0; i < cookies.length; i++) {
-    let cookie = cookies[i].split("=");
-    if (cookie[0] === name) {
-      return cookie[1];
-    }
-  }
-  return "";
+function serialError(err) {
+  print('Something went wrong with the serial port. ' + err);
 }
