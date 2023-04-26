@@ -1,119 +1,122 @@
-// Test this with the Arduino sketch echo.ino, in the p5.serialport
-// examples/echo directory.
-// Try at varying baudrates, up to 115200 (make sure to change
-// Arduino to matching baud rate)
+let port;
+let writer, reader;
+let ledBtn;
+let sensorData = {};
+let light = 0;
+const encoder = new TextEncoder();
+const decorder = new TextDecoder();
 
-// constant for example name
-const exampleName = '03-echo2';
+let lightDanceState = false;
+let ledState = false;
 
-// variable for background color of the p5.js canvas
-let yellow;
-
-// variable for text color
-let black;
-
-// variable for p5.SerialPort object
-let serial;
-
-// variable for latest incoming data
-let latestData = 'waiting for incoming data';
-
-// variable por serialPortName
-let serialPortName = '/dev/cu.usbmodem11201';
-
-// variable for HTML DOM input for serial port name
-let htmlInputPortName;
-
-// variable for HTML DOM button for entering new serial port name
-let htmlButtonPortName;
-
-let inData; // for incoming serial data
-let inByte;
-let byteCount = 0;
-let output = 0;
-let options = {
-  baudRate: 9600,
-};
-
-// p5.js setup() runs once, at the beginning
 function setup() {
-  // small canvas
-  createCanvas(300, 300);
+  createCanvas(400, 400);
 
-  // set yellow color for background
-  yellow = color(255, 255, (255 * 2) / 8);
+  if ("serial" in navigator) {
 
-  // set black color for text
-  black = color(0);
+    // Create a container div for the buttons
+    const buttonContainer = createDiv();
+    buttonContainer.addClass('button-container');
 
-  // set text alignment
-  textAlign(LEFT, CENTER);
+    // The Web Serial API is supported.
+    let button = createButton("connect");
+    button.position(0,0);
+    button.mousePressed(connect);
+    button.addClass("connectBtn"); // Add the "Togglebutton" class to the button
+    button.parent(buttonContainer); // Add the button to the container
 
-  // p5.js to create HTML input and set initial value
-  htmlInputPortName = createInput(serialPortName);
 
-  // p5.js to create HTML button and set message
-  button = createButton('update port');
+    ledBtn = createButton("Toggle Led");
+    ledBtn.position(0,50);
+    ledBtn.mousePressed(toggleLED);
+    ledBtn.addClass("connectBtn"); // Add the "Togglebutton" class to the button
+    ledBtn.parent(buttonContainer); // Add the button to the container
 
-  // p5.js to add callback function for mouse press
-  button.mousePressed(updatePort);
-
-  // create instance of p5.SerialPort
-  serial = new p5.SerialPort();
-
-  // print version of p5.serialport library
-  console.log('p5.serialport.js ' + serial.version);
-
-  serial.on('data', serialEvent); // callback for when new data arrives
-  serial.on('error', serialError); // callback for errors
-
-  serial.openPort(serialPortName, options); // open a serial port
-  serial.clear();
-}
-
-// p5.js draw() runs after setup(), on a loop
-function draw() {
-  // paint background
-  background(yellow);
-
-  // set text color
-  fill(black);
-
-  // place example name on the top of the canvas
-  text(exampleName, (5 * width) / 100, (5 * height) / 100);
-
-  // display the incoming serial data as a string:
-  text('type any key to begin sending.', 30, 30);
-  let displayString =
-    'inByte: ' + inByte + '\t Byte count: ' + byteCount;
-
-  text(displayString, 30, 60);
-}
-
-// callback function to update serial port name
-function updatePort() {
-  // retrieve serial port name from the text area
-  serialPortName = htmlInputPortName.value();
-  // open the serial port
-  serial.openPort(serialPortName);
-}
-
-function keyPressed() {
-  serial.write(output);
-}
-
-function serialEvent() {
-  // read a byte from the serial port:
-  inByte = int(serial.read());
-  if (inByte !== output) {
-    print('Error: received ' + inByte + ' but sent ' + output);
-    print('byte count: ' + byteCount);
+    danceBtn = createButton("Suprise Light Dance");
+    danceBtn.position(0,100);
+    danceBtn.mousePressed(toggleLED_DANCE);
+    danceBtn.addClass("connectBtn"); // Add the "Togglebutton" class to the button
+    danceBtn.parent(buttonContainer); // Add the button to the container
   }
-  byteCount++;
-  output = (inByte + 1) % 256; // modulo 256 to keep value 0-255
-  serial.write(output);
 }
 
-function serialError(err) {
-  print('Something went wrong with the serial port. ' + err);
+function keyTyped() {
+  if (key === 'a') {
+    activationState.active = !activationState.active;
+    serialWrite(activationState);
+  }
+}
+
+function draw() {
+  if (activationState.active) {
+    light = sensorData.light - 200
+    background(light < 255 ? (light < 0 ? 0 : light) : 255); // Change background color based on light sensor value
+    text("Light: " + sensorData.light, 10, 100);
+  } else {
+    background(220);
+  }
+
+  if (reader) {
+    serialRead();
+  }
+}
+
+async function connect() {
+  port = await navigator.serial.requestPort();
+  await port.open({ baudRate: 9600 });
+  writer = port.writable.getWriter();
+  reader = port.readable
+    .pipeThrough(new TextDecoderStream())
+    .pipeThrough(new TransformStream(new LineBreakTransformer()))
+    .getReader();
+}
+
+async function serialRead() {
+  while(true) {
+    const { value, done } = await reader.read();
+    if (done) {
+      reader.releaseLock();
+      break;
+    }
+    console.log(value);
+    sensorData = JSON.parse(value);
+  }
+}
+
+async function serialWrite(jsonObject) {
+  if (writer) {
+    writer.write(encoder.encode(JSON.stringify(jsonObject)+"\n"));
+  }
+}
+
+function toggleLED_DANCE() {
+  serialWrite({lightDance: !lightDanceState});
+  lightDanceState = !lightDanceState;
+}
+
+function toggleLED() {
+  serialWrite({toggleLED: !ledState}); // Send toggle LED command to arduino
+  ledState = !ledState;
+}
+
+
+class LineBreakTransformer {
+  constructor() {
+    // A container for holding stream data until a new line.
+    this.chunks = "";
+  }
+
+  transform(chunk, controller) {
+    // Append new chunks to existing chunks.
+    this.chunks += chunk;
+    // For each line breaks in chunks, send the parsed lines out.
+    const lines = this.chunks.split("\n");
+    this.chunks = lines.pop();
+    lines.forEach((line) => controller.enqueue(line));
+  }
+
+  flush(controller) {
+    // When the stream is closed, flush any remaining chunks out.
+    controller.enqueue(this.chunks);
+  }
 }

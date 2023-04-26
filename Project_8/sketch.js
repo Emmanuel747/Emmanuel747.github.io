@@ -12,6 +12,22 @@ let hasSongPlayed = false
 let playTime = 31; // number of seconds player has for one round.
 let hammerImg;
 
+// webserial Varibles
+let port;
+let writer, reader;
+let button2;
+let sensorData = {};
+let light = 0;
+let button;
+const encoder = new TextEncoder();
+const decorder = new TextDecoder();
+
+let activationState = { active: false };
+
+//ArdinoBoard values
+let cursorPos = { x: 500, y: 600 };
+
+
 // Create a timer to track elapsed time
 function timer() {
   return int(((playTime * 1000) - (millis() - startTime)) / 1000);
@@ -34,13 +50,25 @@ function preload() {
 function setup() {
   createCanvas(windowWidth, windowHeight);
   textAlign(CENTER, CENTER);
-  cursor("none"); // hide default cursor
+
+  if ("serial" in navigator) {
+    // The Web Serial API is supported.
+    button = createButton("Click to Connect GamePad");
+    button.addClass("connectBtn"); // Add the "connectBtn" class to the button
+    button.position(windowWidth /2 - 400, windowHeight / 3 + 200);
+    cursorPos = { x: windowWidth /2 - 85, y: windowHeight / 3 };
+    button.mousePressed(connect);
+
+    // button2 = createButton("toggle led");
+    // button2.position(10,50);
+    // button2.mousePressed(toggleLED);
+  }
 
   // Play background music and set it to loop
   backgroundMusic.setVolume(0.15);
   backgroundMusic.play();
   backgroundMusic.loop();
-  
+
   skitteringSound.setVolume(0.2);
   skitteringSound.play();
 
@@ -58,51 +86,61 @@ function setup() {
       windowWidth
     );
   };
+  toggleMute()
 }
 
 function draw() {
   background(color(124, 48, 48));
   drawMuteBtn();
-  cursor("none"); // hide default cursor
-  if (mouseIsPressed) {
+  // cursor("none"); // hide default cursor
+  image(hammerImg, cursorPos.x, cursorPos.y, 85, 85); // replace with spray bottle
+  if (reader) { serialRead() };
 
-    image(hammerImg, mouseX, mouseY, 85, 85);
-  }
   if (gameState == "wait") {
     // Display message to start the game
     textSize(30);
-    text("Welcome to my game", width/2, height/2);
-    text(" Click anywhere to start", width/2 + 10, height/2 + 35);
-    if (mouseIsPressed) {
+    text("Welcome to my game", width / 2, height / 2);
+    text("Once you connected your Game Pad", width / 2 + 100, height / 2 + 35);
+    text(" Press Spacebar to Start", width / 2 + 20, height / 2 + 70);
+    if (keyCode === 32 || sensorData.button === 1) { // checks to see if spacebar has been pressed
       // Start the game and timer when user presses a key
       startTime = millis();
       gameState = "playing";
     }
-  } else if (gameState == "playing") {
     keyCode = 0;
-    playBossTrack();
-    cursor();
-    // Draw bugs, track time, and kill count during gameplay
-    for (let i = 0; i < bugCount; i++) {
-      bugs[i].draw();
-    }
-    let time = timer();
-    // Format text(content, x-axis, y-axis);
-    text("Time: " + time, 90, 20);
-    text("Kill Count: " + bugsKilled, 150, 50);
-    if (time <= 0) {
-      // End game after 30 seconds
-      console.log(time);
-      gameState = "end";
-    }
-    hasVicSongPlayed = false;
+  } else if (gameState == "playing") {
+    cursor("none"); // hide default cursor
+
+      if (sensorData.button === 1) {
+        buttonPressed();
+      }
+        keyCode = 0;
+        playBossTrack();
+
+        // cursor(); //  enable mouse cursor
+        // Draw bugs, track time, and kill count during gameplay
+        for (let i = 0; i < bugCount; i++) {
+          bugs[i].draw();
+        }
+        let time = timer();
+        // Format text(content, x-axis, y-axis);
+        text("Time: " + time, 90, 20);
+        text("Kill Count: " + bugsKilled, 150, 50);
+        if (time <= 0) {
+          // End game after 30 seconds
+          gameState = "end";
+        }
+        hasVicSongPlayed = false;
+ 
+
+
   } else if (gameState == "end") {
     playBossTrack();
     noCursor();
     // Display end game message and restart prompt
-    text("Kill Count: " + bugsKilled, width/2 + 7, height/2 - 35);
-    text("Game Over", width/2, height/2);
-    text("Press spacebar to restart", width/2 + 92, height/2 + 35);
+    text("Kill Count: " + bugsKilled, width / 2 + 7, height / 2 - 35);
+    text("Game Over", width / 2, height / 2);
+    text("Press spacebar to restart", width / 2 + 92, height / 2 + 35);
     skitteringSound.stop();
     backgroundMusic.stop();
 
@@ -122,27 +160,27 @@ function draw() {
   }
 }
 
-function mousePressed() {
-  // If the user clicks on the mute/unmute button, toggle the mute state
-  if (mouseX > width - 60 && mouseY < 30) {
-    toggleMute();
-  }
-
+function buttonPressed() {
+  console.log("FIREEE --> ", sensorData.button)
   // Handle clicks on bugs
   for (let i = 0; i < bugCount; i++) {
     if (
-      mouseX >= bugs[i].x + 35 &&
-      mouseX <= bugs[i].x + 102 &&
-      mouseY >= 43 + bugs[i].y &&
-      mouseY <= 99 + bugs[i].y &&
+      cursorPos.x >= bugs[i].x + 35 &&
+      cursorPos.x <= bugs[i].x + 102 &&
+      cursorPos.y >= 43 + bugs[i].y &&
+      cursorPos.y <= 99 + bugs[i].y &&
       bugs[i].bugClicked != true
     ) {
+      // toggle spray can image if button is presssed.
+      image(hammerImg, cursorPos.x, cursorPos.y, 85, 85);
       // Play the squish sound effect using Tone.js
       squishSound.play();
-      
+
       // If bug is clicked and not already stopped, stop its movement and add to kill count
       bugs[i].bugClicked = true;
       bugsKilled++;
+
+      serialWrite({ score: bugsKilled });
       bugSpeed += 2;
     }
   }
@@ -189,6 +227,7 @@ class Bug {
     if (x >= bugX && x <= bugX + bugWidth && y >= bugY && y <= bugY + bugHeight && !this.bugClicked) {
       this.bugClicked = true;
       bugsKilled++;
+
       this.speed += 2;
     }
   }
@@ -238,3 +277,79 @@ function playBossTrack() {
     hasVicSongPlayed = true;
   }
 }
+
+class LineBreakTransformer {
+  constructor() {
+    // A container for holding stream data until a new line.
+    this.chunks = "";
+  }
+
+  transform(chunk, controller) {
+    // Append new chunks to existing chunks.
+    this.chunks += chunk;
+    // For each line breaks in chunks, send the parsed lines out.
+    const lines = this.chunks.split("\n");
+    this.chunks = lines.pop();
+    lines.forEach((line) => controller.enqueue(line));
+  }
+
+  flush(controller) {
+    // When the stream is closed, flush any remaining chunks out.
+    controller.enqueue(this.chunks);
+  }
+}
+
+// Function to connect to the Board
+async function connect() {
+  try {
+    port = await navigator.serial.requestPort();
+    await port.open({ baudRate: 9600 });
+    writer = port.writable.getWriter();
+    reader = port.readable
+      .pipeThrough(new TextDecoderStream())
+      .pipeThrough(new TransformStream(new LineBreakTransformer()))
+      .getReader();
+    button.remove();
+  } catch (err) {
+    console.log(err);
+  }
+
+}
+
+// helper function to read and parse JSON string from board
+async function serialRead() {
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) {
+      reader.releaseLock();
+      break;
+    } 
+    sensorData = JSON.parse(value);
+    console.log(sensorData);
+    cursorPos.x = map(sensorData.x, 0, 750, width / 1.3, 0);
+    cursorPos.y = map(sensorData.y, 0, 750, width / 1.3, 0);
+
+  }
+}
+
+// helper function to write and stringify varibles to JSON
+function serialWrite(jsonObject) {
+  if (writer) {
+    writer.write(encoder.encode(JSON.stringify(jsonObject) + "\n"));
+  }
+}
+
+// professor's example
+// async function serialRead() {
+//   // Listen to data coming from the serial device.
+//   while (true) {
+//     const { value, done } = await reader.read();
+//     if (done) {
+//       // Allow the serial port to be closed later.
+//       reader.releaseLock();
+//       break;
+//     }
+//     // value is a string.
+//     console.log(value);
+//   }
+// }
