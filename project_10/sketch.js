@@ -211,7 +211,6 @@ function resetRound() {
   round = 1;
   score = 0;
   speed = 0.03;
-  targetSegment = 1;
   roundStartTime = millis(); // Update round start time
   backgroundMusic.stop();
   mediumModeMusic.stop();
@@ -232,6 +231,7 @@ async function playAgain() {
   playerMissed = true;
   isPlaying = false;
   await sleep(3000);
+  targetSegment = 1;
   circleSegments = 4;
   playerMissed = false;
   isPlaying = true;
