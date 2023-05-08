@@ -1,60 +1,122 @@
-let serial;
-let bgColor = 0;
+let port;
+let writer, reader;
+let ledBtn;
+let sensorData = {};
+let light = 0;
+const encoder = new TextEncoder();
+const decorder = new TextDecoder();
+
+let lightDanceState = false;
+let ledState = false;
 
 function setup() {
-  createCanvas(400, 200);
-  serial = new p5.SerialPort();
-  serial.on('list', printList);
-  serial.on('data', serialEvent);
-  serial.list();
-  serial.open("COM3"); // Change this to the appropriate port for your Arduino
-}
+  createCanvas(400, 400);
 
-function printList(portList) {
-  for (let i = 0; i < portList.length; i++) {
-    console.log(i + " " + portList[i]);
+  if ("serial" in navigator) {
+
+    // Create a container div for the buttons
+    const buttonContainer = createDiv();
+    buttonContainer.addClass('button-container');
+
+    // The Web Serial API is supported.
+    let button = createButton("connect");
+    button.position(0,0);
+    button.mousePressed(connect);
+    button.addClass("connectBtn"); // Add the "Togglebutton" class to the button
+    button.parent(buttonContainer); // Add the button to the container
+
+
+    ledBtn = createButton("Toggle Led");
+    ledBtn.position(0,50);
+    ledBtn.mousePressed(toggleLED);
+    ledBtn.addClass("connectBtn"); // Add the "Togglebutton" class to the button
+    ledBtn.parent(buttonContainer); // Add the button to the container
+
+    danceBtn = createButton("Suprise Light Dance");
+    danceBtn.position(0,100);
+    danceBtn.mousePressed(toggleLED_DANCE);
+    danceBtn.addClass("connectBtn"); // Add the "Togglebutton" class to the button
+    danceBtn.parent(buttonContainer); // Add the button to the container
   }
 }
 
-function serialEvent() {
-  let message = serial.readLine();
-  let value = parseInt(message);
-  if (!isNaN(value)) {
-    bgColor = map(value, 0, 1023, 0, 255);
+function keyTyped() {
+  if (key === 'a') {
+    activationState.active = !activationState.active;
+    serialWrite(activationState);
   }
 }
 
 function draw() {
-  background(bgColor);
-  textSize(24);
-  textAlign(CENTER, CENTER);
-  text("Click to toggle LED", width / 2, height / 2 - 30);
-
-  // Add a rectangle to represent the potentiometer value
-  fill(255);
-  rect(20, height - 40, map(bgColor, 0, 255, 0, width - 40), 20);
-  noFill();
-  rect(20, height - 40, width - 40, 20);
-}
-
-
-function mouseClicked() {
-  let ledState = getCookie("ledState") === "1" ? "0" : "1";
-  setCookie("ledState", ledState);
-  serial.write(ledState);
-}
-
-function setCookie(name, value) {
-  document.cookie = name + "=" + value + ";path=/";
-}
-
-function getCookie(name) {
-  let cookies = document.cookie.split("; ");
-  for (let i = 0; i < cookies.length; i++) {
-    let cookie = cookies[i].split("=");
-    if (cookie[0] === name) {
-      return cookie[1];
-    }
+  if (activationState.active) {
+    light = sensorData.light - 200
+    background(light < 255 ? (light < 0 ? 0 : light) : 255); // Change background color based on light sensor value
+    text("Light: " + sensorData.light, 10, 100);
+  } else {
+    background(220);
   }
-  return "";
+
+  if (reader) {
+    serialRead();
+  }
+}
+
+async function connect() {
+  port = await navigator.serial.requestPort();
+  await port.open({ baudRate: 9600 });
+  writer = port.writable.getWriter();
+  reader = port.readable
+    .pipeThrough(new TextDecoderStream())
+    .pipeThrough(new TransformStream(new LineBreakTransformer()))
+    .getReader();
+}
+
+async function serialRead() {
+  while(true) {
+    const { value, done } = await reader.read();
+    if (done) {
+      reader.releaseLock();
+      break;
+    }
+    console.log(value);
+    sensorData = JSON.parse(value);
+  }
+}
+
+async function serialWrite(jsonObject) {
+  if (writer) {
+    writer.write(encoder.encode(JSON.stringify(jsonObject)+"\n"));
+  }
+}
+
+function toggleLED_DANCE() {
+  serialWrite({lightDance: !lightDanceState});
+  lightDanceState = !lightDanceState;
+}
+
+function toggleLED() {
+  serialWrite({toggleLED: !ledState}); // Send toggle LED command to arduino
+  ledState = !ledState;
+}
+
+
+class LineBreakTransformer {
+  constructor() {
+    // A container for holding stream data until a new line.
+    this.chunks = "";
+  }
+
+  transform(chunk, controller) {
+    // Append new chunks to existing chunks.
+    this.chunks += chunk;
+    // For each line breaks in chunks, send the parsed lines out.
+    const lines = this.chunks.split("\n");
+    this.chunks = lines.pop();
+    lines.forEach((line) => controller.enqueue(line));
+  }
+
+  flush(controller) {
+    // When the stream is closed, flush any remaining chunks out.
+    controller.enqueue(this.chunks);
+  }
 }
