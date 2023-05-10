@@ -25,7 +25,7 @@ let highScoreRound = 0;
 let roundStartTime = 0;
 let roundScore;
 
-let levelText = "LEVEL " + level;
+let levelText = "LEVEL " + level; 
 
 // ArdurinoBoard Varibles
 let hammerImg;

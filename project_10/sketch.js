@@ -22,7 +22,7 @@ let speed = 0.03 + (round * 0.005);
 let highScore = 0;
 let highScoreRound = 0;
 let roundStartTime = 0;
-let roundScore;
+let roundScore = 0;
 
 let levelText = "LEVEL " + level;
 
@@ -58,9 +58,13 @@ function draw() {
   // Update the level display
   levelDisplay.html(levelText);
 
-  // Calculate time elapsed since the start of the round
+   // Calculate time elapsed since the start of the round when in play
   let timeElapsed = millis() - roundStartTime;
-  roundScore = max(200 - floor(timeElapsed / 1000) * 10, 20);
+  if (!isPlaying) {
+    roundScore = roundScore;
+  } else {
+    roundScore = max(200 - floor(timeElapsed / 1000) * 10, 20);
+  }
 
   for (let i = 0; i < circleSegments; i++) {
     push();
@@ -108,7 +112,7 @@ function draw() {
 }
 
 function keyPressed() {
-  if (keyCode === 32 && spacebarEnabled) { // Spacebar
+  if ((keyCode === 32 && spacebarEnabled) || (mouseIsPressed && mouseX >= 0 && mouseX <= width && mouseY >= 0 && mouseY <= height)) { // Spacebar or touch on mobile
     let currentSegment = floor((angle % TWO_PI) / (TWO_PI / circleSegments));
     currentSegmentDisplay = currentSegment; // Update current segment display value
     let lowerBound = (targetSegment - targetWidth + circleSegments) % circleSegments;
@@ -155,7 +159,8 @@ function togglePause() {
 async function nextLevel() {
   if (round % 4 === 0) {
     isPlaying = false;
-    level++;
+    level++
+    levelText = "LEVEL " + level;
     nextRoundMusic.play();
     speed += 0.011;
     await sleep(2000);
