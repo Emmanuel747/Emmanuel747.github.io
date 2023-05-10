@@ -13,8 +13,7 @@ let playTime = 31; // number of seconds player has for one round.
 let hammerImg;
 
 // webserial Varibles
-let port;
-let writer, reader;
+let port, writer, reader;
 let button2;
 let sensorData = {};
 let light = 0;
@@ -58,10 +57,6 @@ function setup() {
     button.position(windowWidth /2 - 400, windowHeight / 3 + 200);
     cursorPos = { x: windowWidth /2 - 85, y: windowHeight / 3 };
     button.mousePressed(connect);
-
-    // button2 = createButton("toggle led");
-    // button2.position(10,50);
-    // button2.mousePressed(toggleLED);
   }
 
   // Play background music and set it to loop
