@@ -9,7 +9,7 @@ let currentSegmentDisplay = null;
 let targetWidth = 0; // How many circleSegments adjacent to the targetSegment also count
 
 let spacebarEnabled = false;
-let isPlaying = false; 
+let isPlaying = true; 
 let mediumModeStarted = false;
 let bossModeStarted = false;
 let playerMissed = false;
@@ -25,6 +25,7 @@ let roundStartTime = 0;
 let roundScore = 0;
 
 let levelText = "LEVEL " + level;
+let pauseBtn;
 
 // preloading sounds
 function preload() {
@@ -49,6 +50,9 @@ function setup() {
   levelDisplay = createDiv("LEVEL " + level);
   levelDisplay.id("levelDisplay");
   levelDisplay.position(width / 2, 50);
+
+  // Create Pause button for Mobile
+  pauseBtn = createButton("PAUSE");
 }
 
 function draw() {
@@ -79,6 +83,8 @@ function draw() {
     rect(radius, -10, 40, 20);
     pop();
   }
+
+  pauseBtn.touchStarted(isPlaying = !isPlaying);
 
   if (isPlaying) {
     push();
@@ -248,12 +254,9 @@ function sleep(ms) {
 }
 
 function flashSuccess() {
-
   successSound.play();
 }
 
 async function flashFailure() {
-
-
   playAgain();
 }
