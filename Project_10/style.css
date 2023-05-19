@@ -170,11 +170,26 @@ canvas {
 }
 
 #levelDisplay {
+  display: flex;
   position: absolute;
   font-size: 58px;
   font-weight: bold;
-  text-align: center;
   color: #4CAF50;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-  transform: translate(24vw, 10vh); /* Adjust the values to move the div */
+  transform: translate(10vw, 22vh); /* Adjust the values to move the div */
+  width: fit-content;
+  text-align: center;
+}
+
+.pauseBtn {
+  position: absolute;
+  transform: translate(927px, -58px);
+  font-size: 30px;
+  border-radius: 50%;
+  background-color: transparent;
+  border: transparent;
+}
+.pauseBtn:active {
+  background-color: #238, 130, 238; /* Light violet background when pressed */
+  color: white; /* White text when pressed */
 }

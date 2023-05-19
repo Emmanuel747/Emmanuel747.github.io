@@ -3,13 +3,14 @@ let textColor;
 let angle = 0;
 
 let radius;
-let circleSegments = 4; // default 90
+let circleSegments = 8; // default 90
 let targetSegment = 1;
 let currentSegmentDisplay = null;
 let targetWidth = 0; // How many circleSegments adjacent to the targetSegment also count
 
+let isTouching = false; // Track touch state
 let spacebarEnabled = false;
-let isPlaying = true; 
+let isPlaying = false; 
 let mediumModeStarted = false;
 let bossModeStarted = false;
 let playerMissed = false;
@@ -17,7 +18,7 @@ let playerMissed = false;
 let score = 0;
 let level = 1;
 let round = 1;
-let speed = 0.03 + (round * 0.005);
+let speed = 0.04 + (round * 0.005);
 
 let highScore = 0;
 let highScoreRound = 0;
@@ -52,7 +53,8 @@ function setup() {
   levelDisplay.position(width / 2, 50);
 
   // Create Pause button for Mobile
-  pauseBtn = createButton("PAUSE");
+  pauseBtn = createButton("⏸");
+  pauseBtn.class('pauseBtn');
 }
 
 function draw() {
@@ -84,7 +86,8 @@ function draw() {
     pop();
   }
 
-  pauseBtn.touchStarted(isPlaying = !isPlaying);
+  pauseBtn.mousePressed(togglePause);
+
 
   if (isPlaying) {
     push();
@@ -118,32 +121,46 @@ function draw() {
 }
 
 function keyPressed() {
-  if ((keyCode === 32 && spacebarEnabled) || (mouseIsPressed && mouseX >= 0 && mouseX <= width && mouseY >= 0 && mouseY <= height)) { // Spacebar or touch on mobile
-    let currentSegment = floor((angle % TWO_PI) / (TWO_PI / circleSegments));
-    currentSegmentDisplay = currentSegment; // Update current segment display value
-    let lowerBound = (targetSegment - targetWidth + circleSegments) % circleSegments;
-    let upperBound = (targetSegment + targetWidth) % circleSegments;
-    
-    if ((currentSegment >= lowerBound && currentSegment <= upperBound) || (currentSegment <= upperBound && lowerBound > upperBound) || (currentSegment >= lowerBound && lowerBound > upperBound)) {
-      console.log("Success!");
-      flashSuccess();
-      score += roundScore;
-      nextRound();
-
-      // Update high score and high score round if the current score is higher
-      if (score > highScore) {
-        highScore = score;
-        highScoreRound = round;
-      }
-    } else {
-      console.log("Try again!");
-      flashFailure();
-      resetRound();
-    }
-  } else if (keyCode === ESCAPE) { // Escape key
+  if (keyCode === 32 && spacebarEnabled) {
+    stopRotatingPointer();
+  } else if (keyCode === ESCAPE) {
     togglePause();
   }
 }
+
+function mousePressed() {
+    // Toggle the touch state
+    isTouching = !isTouching;
+  if (isTouching && spacebarEnabled && (mouseX >= 0 && mouseX <= width && mouseY >= 0 && mouseY <= height)) {
+    stopRotatingPointer();
+  }
+}
+
+function stopRotatingPointer() {
+  let currentSegment = floor((angle % TWO_PI) / (TWO_PI / circleSegments));
+  currentSegmentDisplay = currentSegment; // Update current segment display value
+  let lowerBound = (targetSegment - targetWidth + circleSegments) % circleSegments;
+  let upperBound = (targetSegment + targetWidth) % circleSegments;
+  
+  if ((currentSegment >= lowerBound && currentSegment <= upperBound) || (currentSegment <= upperBound && lowerBound > upperBound) || (currentSegment >= lowerBound && lowerBound > upperBound)) {
+    console.log("Success!");
+    flashSuccess();
+    score += roundScore;
+    nextRound();
+
+    // Update high score and high score round if the current score is higher
+    if (score > highScore) {
+      highScore = score;
+      highScoreRound = round;
+    }
+  } else {
+    console.log("Try again!");
+    flashFailure();
+    resetRound();
+  }
+}
+
+
 
 function togglePause() {
   isPlaying = !isPlaying;
@@ -173,7 +190,7 @@ async function nextLevel() {
     circleSegments += 10;
     isPlaying = true;
 
-    if (targetWidth <= 7 && round > 3) {
+    if (targetWidth <= 3 && round > 5) {
       targetWidth += 1;
     }
   }
@@ -203,7 +220,7 @@ async function nextLevel() {
     bossBgMusic.loop();
     bossModeStarted = true;
     currentBackgroundColor = 50;
-    textColor = color(238, 130, 238); // Light violet
+    textColor = color(95, 2, 124); // Light violet
     togglePause();
   }
 }
@@ -231,7 +248,8 @@ function resetRound() {
   textColor = color(0, 0, 0);
   bossModeStarted = false;
   mediumModeStarted = false;
-  // currentSegmentDisplay = null; // Clear current segment display value
+  // targetSegment = 1;
+  
 }
 
 async function playAgain() {
@@ -243,7 +261,9 @@ async function playAgain() {
   isPlaying = false;
   await sleep(3000);
   targetSegment = 1;
-  circleSegments = 4;
+  circleSegments = 8;
+  targetWidth = 0;
+  currentSegmentDisplay = null; // Clear current segment display value\
   playerMissed = false;
   isPlaying = true;
   backgroundMusic.loop(); 
